@@ -1,8 +1,10 @@
 'use strict';
 
 const express = require('express');
-const isUrl = require('is-url');
 const morgan = require('morgan');
+const path = require('path');
+const shortUrlService = require('./short-url.service.js');
+const urlHelper = require('./url.helper.js');
 
 let app = express();
 
@@ -16,10 +18,14 @@ app.get('/favicon.ico', function (req, res) {
     res.sendStatus(404);
 });
 
-app.get('/:base64', function (req, res) {
+app.get('/', function (req, res) {
+   res.sendFile(path.join(__dirname + '/index.html'));
+});
 
-    let url = fromBase64(req.params.base64);
-    if (isValidUrl(url)) {
+app.get('/:short_link', function (req, res) {
+
+    let url = shortUrlService.getFull(req.params.short_link);
+    if (urlHelper.isValid(url)) {
         return res.redirect(url);
     }
     res.send({
@@ -30,10 +36,13 @@ app.get('/:base64', function (req, res) {
 app.get('/new/*', function (req, res) {
     let url = req.params[0];
     let response;
-    if (isValidUrl(url)) {
+    if (urlHelper.isValid(url)) {
+
+        let shortUrl = shortUrlService.getShort(url);
+
         response = {
             original_url: url,
-            short_url: toBase64(url)
+            short_url: shortUrl
         };
     } else {
         response = {
@@ -43,18 +52,6 @@ app.get('/new/*', function (req, res) {
 
     res.send(response);
 });
-
-function isValidUrl(url) {
-    return isUrl(url);
-}
-
-function toBase64(str) {
-    return Buffer.from(str).toString('base64');
-}
-
-function fromBase64(base64) {
-    return Buffer.from(base64, 'base64').toString('utf-8');
-}
 
 let defaultAddress = "0.0.0.0";
 let defaultPort = 8080;
